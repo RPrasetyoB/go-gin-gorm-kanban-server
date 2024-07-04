@@ -1,27 +1,40 @@
 package main
 
 import (
-	"go-kanban/helper"
-	"net/http"
+	"fmt"
+	"go-kanban/config"
+	"go-kanban/utils"
+	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-
-	log.Info().Msg("server started!")
-	routes := gin.Default()
-
-	routes.GET("", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, "welcome")
-	})
-
-	server := &http.Server{
-		Addr:    ":3000",
-		Handler: routes,
+	gin.SetMode(gin.ReleaseMode)
+	// Load .env file
+	err := godotenv.Load(".env")
+	if err != nil {
+		fmt.Printf(".env load failed")
 	}
 
-	err := server.ListenAndServe()
-	helper.ErrorHandler(err)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":8888"
+	}
+
+	// Initialize application configuration
+	initConfig := config.Init()
+
+	// Use custom error handler middleware
+	initConfig.Router.Use(utils.ErrorHandler())
+
+	go func() {
+		if err := initConfig.Router.Run(port); err != nil {
+			fmt.Printf("Failed to start server: %v\n", err)
+		}
+	}()
+
+	fmt.Printf("Server running at http://localhost%s\n", port)
+	select {}
 }
