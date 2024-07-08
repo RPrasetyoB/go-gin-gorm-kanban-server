@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"errors"
-	"fmt"
 	"go-kanban/models"
 
 	"gorm.io/gorm"
@@ -43,8 +42,6 @@ func (a *AuthImpl) FindByUsername(username string) (*models.Users, error) {
 	if err := db.Commit().Error; err != nil {
 		return nil, err
 	}
-
-	fmt.Println("useerrrrr", &user)
 
 	return &user, nil
 }

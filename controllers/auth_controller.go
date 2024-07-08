@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"go-kanban/helper"
 	"go-kanban/http/request"
 	"go-kanban/http/response"
 	"go-kanban/models"
@@ -37,7 +38,8 @@ func NewAuthController(db *gorm.DB) AuthController {
 
 func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 	createRequest := request.CreateRequest{}
-	if err := ctx.ShouldBindJSON(&createRequest); err != nil {
+	errType := ctx.ShouldBindJSON(&createRequest)
+	if errType != nil {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusBadRequest,
@@ -47,7 +49,8 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := r.validator.Struct(createRequest); err != nil {
+	err := r.validator.Struct(createRequest)
+	if err != nil {
 		errorMsg := utils.GetErrorMessage(err)
 		response := response.ErrorResponse{
 			Success: false,
@@ -65,7 +68,7 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 
 	createdUser, err := r.authService.Register(user)
 	if err != nil {
-		if CustomError, ok := err.(*utils.CustomError); ok {
+		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
 				Success: false,
 				Code:    CustomError.Code,
@@ -95,7 +98,8 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 
 func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 	loginUser := request.LoginRequest{}
-	if err := ctx.ShouldBindJSON(&loginUser); err != nil {
+	errType := ctx.ShouldBindJSON(&loginUser)
+	if errType != nil {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusBadRequest,
@@ -105,7 +109,8 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := l.validator.Struct(loginUser); err != nil {
+	err := l.validator.Struct(loginUser)
+	if err != nil {
 		errorMsg := utils.GetErrorMessage(err)
 		response := response.ErrorResponse{
 			Success: false,
@@ -118,7 +123,7 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 
 	token, err := l.authService.Login(loginUser.Username, loginUser.Password)
 	if err != nil {
-		if CustomError, ok := err.(*utils.CustomError); ok {
+		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
 				Success: false,
 				Code:    CustomError.Code,

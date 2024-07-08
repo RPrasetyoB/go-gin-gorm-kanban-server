@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
+	"go-kanban/helper"
 	"go-kanban/models"
 	repositories "go-kanban/repositories/auth"
-	"go-kanban/utils"
 	"net/http"
 	"os"
 	"time"
@@ -46,7 +46,7 @@ func (s *AuthServiceImpl) Register(user *models.Users) (*models.Users, error) {
 	// Check if username already exists
 	existingUser, _ := s.repo.FindByUsername(user.Username)
 	if existingUser != nil {
-		return nil, &utils.CustomError{
+		return nil, &helper.CustomError{
 			Code:    http.StatusConflict,
 			Message: "Username already exists",
 		}
@@ -54,7 +54,7 @@ func (s *AuthServiceImpl) Register(user *models.Users) (*models.Users, error) {
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, &utils.CustomError{
+		return nil, &helper.CustomError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
 		}
@@ -64,7 +64,7 @@ func (s *AuthServiceImpl) Register(user *models.Users) (*models.Users, error) {
 	// Create user
 	newUser, err := s.repo.CreateUser(user)
 	if err != nil {
-		return nil, &utils.CustomError{
+		return nil, &helper.CustomError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
 		}
@@ -77,7 +77,7 @@ func (s *AuthServiceImpl) Register(user *models.Users) (*models.Users, error) {
 func (s *AuthServiceImpl) Login(username, password string) (string, error) {
 	user, err := s.repo.FindByUsername(username)
 	if err != nil {
-		return "", &utils.CustomError{
+		return "", &helper.CustomError{
 			Code:    http.StatusBadRequest,
 			Message: "invalid username or password",
 		}
@@ -85,7 +85,7 @@ func (s *AuthServiceImpl) Login(username, password string) (string, error) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return "", &utils.CustomError{
+		return "", &helper.CustomError{
 			Code:    http.StatusBadRequest,
 			Message: "invalid username or password",
 		}
@@ -93,7 +93,7 @@ func (s *AuthServiceImpl) Login(username, password string) (string, error) {
 
 	tokenString, err := s.generateToken(user)
 	if err != nil {
-		return "", &utils.CustomError{
+		return "", &helper.CustomError{
 			Code:    http.StatusInternalServerError,
 			Message: "failed to generat tooken",
 		}
@@ -102,12 +102,11 @@ func (s *AuthServiceImpl) Login(username, password string) (string, error) {
 	return tokenString, nil
 }
 
-// Helper function to generate JWT token
+// function to generate JWT token
 func (s *AuthServiceImpl) generateToken(user *models.Users) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id":  user.ID,
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Hour * 72).Unix(),
+		"user_id": user.ID,
+		"exp":     time.Now().Add(time.Hour * 72).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(s.jwtSecret)

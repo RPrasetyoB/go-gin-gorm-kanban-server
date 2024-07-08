@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"go-kanban/config"
-	"go-kanban/utils"
+	"go-kanban/helper"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +27,7 @@ func main() {
 	initConfig := config.Init()
 
 	// Use custom error handler middleware
-	initConfig.Router.Use(utils.ErrorHandler())
+	initConfig.Router.Use(helper.ErrorHandler())
 
 	go func() {
 		if err := initConfig.Router.Run(port); err != nil {

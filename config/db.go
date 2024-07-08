@@ -2,24 +2,26 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func DatabaseConnection() *gorm.DB {
+func DatabaseConnection() (*gorm.DB, error) {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Error loading .env file")
+		log.Printf("Error loading .env file: %v", err)
 	}
 
 	portStr := os.Getenv("DATABASE_PORT")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		fmt.Println("invalid database port: %w", err)
+		return nil, fmt.Errorf("invalid database port: %w", err)
 	}
 
 	host := os.Getenv("DATABASE_HOST")
@@ -29,12 +31,23 @@ func DatabaseConnection() *gorm.DB {
 
 	sqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
 
-	db, err := gorm.Open(postgres.Open(sqlInfo), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(sqlInfo), &gorm.Config{
+		PrepareStmt: false,
+	})
 	if err != nil {
-		fmt.Println("failed to connect to database: %w", err)
-	} else {
-		fmt.Println("Connected to database")
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+	log.Println("Connected to database")
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	return db
+	// Set connection pool settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	return db, nil
 }

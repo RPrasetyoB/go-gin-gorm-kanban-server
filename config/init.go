@@ -12,14 +12,18 @@ type InitConfig struct {
 }
 
 func Init() *InitConfig {
-	db := DatabaseConnection()
+	db, _ := DatabaseConnection()
 	authController := controllers.NewAuthController(db)
+	todoController := controllers.NewTodoController(db)
 
 	router := gin.Default()
-
 	routers.InitRoutes(router)
+	// auth router
 	authRouter := routers.NewAuthRouter(router, authController)
-	authRouter.RegisterRoutes()
+	authRouter.AuthRoutes()
+	// todo router
+	todoRouter := routers.NewTodoRouter(router, todoController)
+	todoRouter.TodoRoutes()
 
 	return &InitConfig{
 		Router: router,

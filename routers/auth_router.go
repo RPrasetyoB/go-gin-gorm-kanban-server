@@ -18,7 +18,7 @@ func NewAuthRouter(router *gin.Engine, authController controllers.AuthController
 	}
 }
 
-func (r *AuthRouterImpl) RegisterRoutes() {
+func (r *AuthRouterImpl) AuthRoutes() {
 	authRouter := r.router.Group("/api/v1/auth")
 	{
 		authRouter.POST("/register", r.authController.CreateUser)
