@@ -49,14 +49,15 @@ func (t *TodoImpl) FindTodoById(todoId int) (*models.Todos, error) {
 // Update implements TodoRepository.
 func (t *TodoImpl) Update(todoId int, updateTodo *models.Todos) (*models.Todos, error) {
 	var todo models.Todos
-	findTodo := t.Db.First(&todo, todoId)
-	if findTodo.Error != nil {
-		return nil, findTodo.Error
+	session := t.Db.Session(&gorm.Session{})
+	err := session.First(&todo, todoId).Error
+	if err != nil {
+		return nil, err
 	}
 
 	todo.Title = updateTodo.Title
 	todo.Description = updateTodo.Description
-	result := t.Db.Save(&todo)
+	result := session.Save(&todo)
 
 	if result.Error != nil {
 		return nil, result.Error

@@ -4,9 +4,8 @@ import (
 	"go-kanban/helper"
 	"go-kanban/http/request"
 	"go-kanban/http/response"
-	middleware "go-kanban/middlewares"
 	"go-kanban/models"
-	repositories "go-kanban/repositories/todo"
+	repositories "go-kanban/repositories/item"
 	"go-kanban/services"
 	"go-kanban/utils"
 	"net/http"
@@ -17,33 +16,33 @@ import (
 	"gorm.io/gorm"
 )
 
-type TodoController interface {
-	CreateTodo(ctx *gin.Context)
-	GetUserTodos(ctx *gin.Context)
-	GetTodoById(ctx *gin.Context)
-	UpdateTodo(ctx *gin.Context)
-	DeleteTodo(ctx *gin.Context)
+type ItemController interface {
+	CreateItem(ctx *gin.Context)
+	GetItemList(ctx *gin.Context)
+	GetItemById(ctx *gin.Context)
+	UpdateItem(ctx *gin.Context)
+	DeleteItem(ctx *gin.Context)
 }
 
-type TodoControllerImpl struct {
-	todoService services.TodoService
+type ItemControllerImpl struct {
+	itemService services.ItemService
 	validator   *validator.Validate
 }
 
-func NewTodoController(db *gorm.DB) TodoController {
-	todoRepo := repositories.NewTodoImpl(db)
-	todoService := services.NewTodoService(todoRepo)
+func NewItemController(db *gorm.DB) ItemController {
+	itemRepo := repositories.NewItemImpl(db)
+	itemService := services.NewItemService(itemRepo)
 	validator := validator.New()
 
-	return &TodoControllerImpl{
-		todoService: todoService,
+	return &ItemControllerImpl{
+		itemService: itemService,
 		validator:   validator,
 	}
 }
 
-// CreateTodo implements TodoController.
-func (t *TodoControllerImpl) CreateTodo(ctx *gin.Context) {
-	createRequest := request.TodoRequest{}
+// CreateItem implements ItemController.
+func (i *ItemControllerImpl) CreateItem(ctx *gin.Context) {
+	createRequest := request.ItemRequest{}
 	errType := ctx.ShouldBindJSON(&createRequest)
 	if errType != nil {
 		response := response.ErrorResponse{
@@ -55,27 +54,23 @@ func (t *TodoControllerImpl) CreateTodo(ctx *gin.Context) {
 		return
 	}
 
-	err := t.validator.Struct(createRequest)
+	err := i.validator.Struct(createRequest)
 	if err != nil {
-		errorMsg := utils.GetErrorMessage(err)
+		errMessage := utils.GetErrorMessage(err)
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusBadRequest,
-			Message: errorMsg,
+			Message: errMessage,
 		}
 		ctx.JSON(response.Code, response)
 		return
 	}
-
-	user := middleware.GetUser(ctx)
-	userId := user["ID"].(int)
-
-	todo := &models.Todos{
-		Title:       createRequest.Title,
-		Description: createRequest.Description,
+	item := &models.Items{
+		Todo_id:             createRequest.Todo_id,
+		Name:                createRequest.Name,
+		Progress_percentage: createRequest.Progress_percentage,
 	}
-
-	createdTodo, err := t.todoService.CreateNewTodoService(userId, todo)
+	createItem, err := i.itemService.CreateNewItemService(item)
 	if err != nil {
 		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
@@ -90,7 +85,7 @@ func (t *TodoControllerImpl) CreateTodo(ctx *gin.Context) {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to create new todo",
+			Message: "Failed to create new item",
 		}
 		ctx.JSON(response.Code, response)
 		return
@@ -98,18 +93,17 @@ func (t *TodoControllerImpl) CreateTodo(ctx *gin.Context) {
 	webResponse := response.SuccessResponse{
 		Success: true,
 		Code:    http.StatusOK,
-		Message: "New todo added successfully",
-		Data:    createdTodo,
+		Message: "New item added successfully",
+		Data:    createItem,
 	}
 	ctx.JSON(webResponse.Code, webResponse)
 }
 
-// GetUserTodos implements TodoController.
-func (t *TodoControllerImpl) GetUserTodos(ctx *gin.Context) {
-	user := middleware.GetUser(ctx)
-	userId := user["ID"].(int)
-
-	todolist, err := t.todoService.FindUserTodoService(userId)
+// GetItemList implements ItemController.
+func (i *ItemControllerImpl) GetItemList(ctx *gin.Context) {
+	idParam := ctx.Param("todoId")
+	todoId, _ := strconv.Atoi(idParam)
+	itemList, err := i.itemService.GetAllItemService(todoId)
 	if err != nil {
 		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
@@ -124,17 +118,17 @@ func (t *TodoControllerImpl) GetUserTodos(ctx *gin.Context) {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to create new todo",
+			Message: "Failed to get item list",
 		}
 		ctx.JSON(response.Code, response)
 		return
 	}
-	if len(todolist) == 0 {
+	if len(itemList) == 0 {
 		response := response.SuccessResponse{
 			Success: true,
 			Code:    http.StatusAccepted,
-			Message: "User hasn't created any todos yet.",
-			Data:    todolist,
+			Message: "User hasn't created any item in current todo.",
+			Data:    itemList,
 		}
 		ctx.JSON(response.Code, response)
 		return
@@ -142,20 +136,18 @@ func (t *TodoControllerImpl) GetUserTodos(ctx *gin.Context) {
 	webResponse := response.SuccessResponse{
 		Success: true,
 		Code:    http.StatusOK,
-		Message: "Todo list retrieved successfully",
-		Data:    todolist,
+		Message: "Item list retrieved successfully",
+		Data:    itemList,
 	}
 	ctx.JSON(webResponse.Code, webResponse)
 }
 
-// GetTodoById implements TodoController.
-func (t *TodoControllerImpl) GetTodoById(ctx *gin.Context) {
+// GetItemById implements ItemController.
+func (i *ItemControllerImpl) GetItemById(ctx *gin.Context) {
 	idParam := ctx.Param("id")
-	todoId, _ := strconv.Atoi(idParam)
-	user := middleware.GetUser(ctx)
-	userId := user["ID"].(int)
+	itemId, _ := strconv.Atoi(idParam)
 
-	todo, err := t.todoService.GetTodoByIdService(todoId, userId)
+	item, err := i.itemService.GetItemByIdService(itemId)
 	if err != nil {
 		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
@@ -170,7 +162,7 @@ func (t *TodoControllerImpl) GetTodoById(ctx *gin.Context) {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to get todo",
+			Message: "Failed to get item",
 		}
 		ctx.JSON(response.Code, response)
 		return
@@ -178,15 +170,15 @@ func (t *TodoControllerImpl) GetTodoById(ctx *gin.Context) {
 	webResponse := response.SuccessResponse{
 		Success: true,
 		Code:    http.StatusOK,
-		Message: "Todo retrieved successfully",
-		Data:    todo,
+		Message: "Item retrieved successfully",
+		Data:    item,
 	}
 	ctx.JSON(webResponse.Code, webResponse)
 }
 
-// UpdateTodo implements TodoController.
-func (t *TodoControllerImpl) UpdateTodo(ctx *gin.Context) {
-	createRequest := request.TodoRequest{}
+// UpdateItem implements ItemController.
+func (i *ItemControllerImpl) UpdateItem(ctx *gin.Context) {
+	createRequest := request.ItemRequest{}
 	errType := ctx.ShouldBindJSON(&createRequest)
 	if errType != nil {
 		response := response.ErrorResponse{
@@ -198,7 +190,7 @@ func (t *TodoControllerImpl) UpdateTodo(ctx *gin.Context) {
 		return
 	}
 
-	err := t.validator.Struct(createRequest)
+	err := i.validator.Struct(createRequest)
 	if err != nil {
 		errorMsg := utils.GetErrorMessage(err)
 		response := response.ErrorResponse{
@@ -211,16 +203,15 @@ func (t *TodoControllerImpl) UpdateTodo(ctx *gin.Context) {
 	}
 
 	idParam := ctx.Param("id")
-	todoId, _ := strconv.Atoi(idParam)
-	user := middleware.GetUser(ctx)
-	userId := user["ID"].(int)
+	itemId, _ := strconv.Atoi(idParam)
 
-	todo := &models.Todos{
-		Title:       createRequest.Title,
-		Description: createRequest.Description,
+	item := &models.Items{
+		Todo_id:             createRequest.Todo_id,
+		Name:                createRequest.Name,
+		Progress_percentage: createRequest.Progress_percentage,
 	}
 
-	updatedTodo, err := t.todoService.UpdateTodoService(todoId, userId, todo)
+	updateItem, err := i.itemService.UpdateItemService(itemId, item)
 	if err != nil {
 		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
@@ -235,7 +226,7 @@ func (t *TodoControllerImpl) UpdateTodo(ctx *gin.Context) {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to update todo",
+			Message: "Failed to update item",
 		}
 		ctx.JSON(response.Code, response)
 		return
@@ -243,20 +234,17 @@ func (t *TodoControllerImpl) UpdateTodo(ctx *gin.Context) {
 	webResponse := response.SuccessResponse{
 		Success: true,
 		Code:    http.StatusOK,
-		Message: "Todo updated successfully",
-		Data:    updatedTodo,
+		Message: "Item updated successfully",
+		Data:    updateItem,
 	}
 	ctx.JSON(webResponse.Code, webResponse)
 }
 
-// DeleteTodo implements TodoController.
-func (t *TodoControllerImpl) DeleteTodo(ctx *gin.Context) {
+// DeleteItem implements ItemController.
+func (i *ItemControllerImpl) DeleteItem(ctx *gin.Context) {
 	idParam := ctx.Param("id")
-	todoId, _ := strconv.Atoi(idParam)
-	user := middleware.GetUser(ctx)
-	userId := user["ID"].(int)
-
-	_, err := t.todoService.DeleteTodoService(todoId, userId)
+	itemId, _ := strconv.Atoi(idParam)
+	_, err := i.itemService.DeleteItemService(itemId)
 	if err != nil {
 		if CustomError, ok := err.(*helper.CustomError); ok {
 			response := response.ErrorResponse{
@@ -271,7 +259,7 @@ func (t *TodoControllerImpl) DeleteTodo(ctx *gin.Context) {
 		response := response.ErrorResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to delete todo",
+			Message: "Failed to delete item",
 		}
 		ctx.JSON(response.Code, response)
 		return
@@ -279,7 +267,7 @@ func (t *TodoControllerImpl) DeleteTodo(ctx *gin.Context) {
 	webResponse := response.SuccessResponse{
 		Success: true,
 		Code:    http.StatusOK,
-		Message: "Todo deleted successfully",
+		Message: "Item deleted successfully",
 	}
 	ctx.JSON(webResponse.Code, webResponse)
 }

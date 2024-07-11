@@ -45,7 +45,7 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 			Code:    http.StatusBadRequest,
 			Message: "Payload type invalid",
 		}
-		ctx.JSON(http.StatusBadRequest, response)
+		ctx.JSON(response.Code, response)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 			Code:    http.StatusBadRequest,
 			Message: errorMsg,
 		}
-		ctx.JSON(http.StatusBadRequest, response)
+		ctx.JSON(response.Code, response)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 				Code:    CustomError.Code,
 				Message: CustomError.Message,
 			}
-			ctx.JSON(CustomError.Code, response)
+			ctx.JSON(response.Code, response)
 			return
 		}
 
@@ -83,7 +83,7 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to register user",
 		}
-		ctx.JSON(http.StatusInternalServerError, response)
+		ctx.JSON(response.Code, response)
 		return
 	}
 
@@ -93,7 +93,7 @@ func (r *AuthControllerImpl) CreateUser(ctx *gin.Context) {
 		Message: "User registered successfully",
 		Data:    createdUser,
 	}
-	ctx.JSON(http.StatusOK, webResponse)
+	ctx.JSON(webResponse.Code, webResponse)
 }
 
 func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
@@ -105,7 +105,7 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 			Code:    http.StatusBadRequest,
 			Message: "Payload type invalid",
 		}
-		ctx.JSON(http.StatusBadRequest, response)
+		ctx.JSON(response.Code, response)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 			Code:    http.StatusBadRequest,
 			Message: errorMsg,
 		}
-		ctx.JSON(http.StatusBadRequest, response)
+		ctx.JSON(response.Code, response)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 				Code:    CustomError.Code,
 				Message: CustomError.Message,
 			}
-			ctx.JSON(CustomError.Code, response)
+			ctx.JSON(response.Code, response)
 			return
 		}
 
@@ -138,7 +138,7 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to login",
 		}
-		ctx.JSON(http.StatusInternalServerError, response)
+		ctx.JSON(response.Code, response)
 		return
 	}
 
@@ -150,5 +150,5 @@ func (l *AuthControllerImpl) LoginUser(ctx *gin.Context) {
 			"token": token,
 		},
 	}
-	ctx.JSON(http.StatusOK, webResponse)
+	ctx.JSON(webResponse.Code, webResponse)
 }

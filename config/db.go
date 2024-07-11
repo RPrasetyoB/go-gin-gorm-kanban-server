@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func DatabaseConnection() (*gorm.DB, error) {
@@ -32,15 +33,18 @@ func DatabaseConnection() (*gorm.DB, error) {
 	sqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
 
 	db, err := gorm.Open(postgres.Open(sqlInfo), &gorm.Config{
+		Logger:      logger.Default.LogMode(logger.Silent),
 		PrepareStmt: false,
 	})
 	if err != nil {
+		log.Printf("failed to connect to database, check your internet connection / contact developer")
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 	log.Println("Connected to database")
 
 	sqlDB, err := db.DB()
 	if err != nil {
+		log.Printf("Custom error: failed to get database instance")
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 

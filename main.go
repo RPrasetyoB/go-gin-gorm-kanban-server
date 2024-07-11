@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var port = 3000
+
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	// Load .env file
@@ -22,7 +24,6 @@ func main() {
 	if port == "" {
 		port = ":8888"
 	}
-
 	// Initialize application configuration
 	initConfig := config.Init()
 

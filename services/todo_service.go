@@ -57,15 +57,18 @@ func (t *TodoServiceImpl) GetTodoByIdService(todoId int, userId int) (*models.To
 	getTodo, err := t.repo.FindTodoById(todoId)
 	if err != nil {
 		var statusCode int
+		var messageErr string
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			statusCode = http.StatusNotFound
+			messageErr = "todo not found"
 		} else {
 			statusCode = http.StatusInternalServerError
+			messageErr = err.Error()
 		}
 
 		return nil, &helper.CustomError{
 			Code:    statusCode,
-			Message: err.Error(),
+			Message: messageErr,
 		}
 	}
 	if userId != getTodo.User_id {
@@ -74,58 +77,33 @@ func (t *TodoServiceImpl) GetTodoByIdService(todoId int, userId int) (*models.To
 			Message: "Forbidden to retrieve other user's todo",
 		}
 	}
-	todo, err := t.repo.FindTodoById(todoId)
-	if err != nil {
-		var statusCode int
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			statusCode = http.StatusNotFound
-		} else {
-			statusCode = http.StatusInternalServerError
-		}
 
-		return nil, &helper.CustomError{
-			Code:    statusCode,
-			Message: err.Error(),
-		}
-	}
-
-	return todo, nil
+	return getTodo, nil
 }
 
 // UpdateTodo implements TodoService.
 func (t *TodoServiceImpl) UpdateTodoService(todoId int, userId int, updateTodo *models.Todos) (*models.Todos, error) {
-	getTodo, err := t.repo.FindTodoById(todoId)
-	if err != nil {
-		var statusCode int
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			statusCode = http.StatusNotFound
-		} else {
-			statusCode = http.StatusInternalServerError
-		}
-
-		return nil, &helper.CustomError{
-			Code:    statusCode,
-			Message: err.Error(),
-		}
-	}
-	if userId != getTodo.User_id {
-		return nil, &helper.CustomError{
-			Code:    http.StatusForbidden,
-			Message: "Forbidden to update other user's todo",
-		}
-	}
 	todo, err := t.repo.Update(todoId, updateTodo)
 	if err != nil {
 		var statusCode int
+		var messageErr string
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			statusCode = http.StatusNotFound
+			messageErr = "todo not found"
 		} else {
 			statusCode = http.StatusInternalServerError
+			messageErr = err.Error()
 		}
 
 		return nil, &helper.CustomError{
 			Code:    statusCode,
-			Message: err.Error(),
+			Message: messageErr,
+		}
+	}
+	if userId != todo.User_id {
+		return nil, &helper.CustomError{
+			Code:    http.StatusForbidden,
+			Message: "Forbidden to update other user's todo",
 		}
 	}
 
